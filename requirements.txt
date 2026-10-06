@@ -1,0 +1,24 @@
+# =============================================================================
+# requirements.txt
+# Compatible with Python 3.9+ on Windows (no C++ Build Tools required)
+# =============================================================================
+
+# Data processing
+pandas==2.1.4
+numpy==1.26.4
+
+# Database
+psycopg2-binary==2.9.9       # PostgreSQL adapter (binary wheel — no build needed)
+
+# AWS
+boto3==1.34.100
+botocore==1.34.100
+
+# Environment management
+python-dotenv==1.0.1
+
+# Data generation (dev only)
+Faker==24.11.0
+
+# Testing
+pytest==8.2.0

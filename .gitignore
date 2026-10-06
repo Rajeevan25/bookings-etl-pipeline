@@ -1,0 +1,42 @@
+# Git ignore file for data-engineer ETL project
+
+# Environment / Secrets (NEVER commit these)
+.env
+*.pem
+*.key
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+venv/
+.venv/
+env/
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Data files (large, generated)
+data/raw/*.csv
+data/clean/*.csv
+data/rejected/*.csv
+data/raw/s3_cache.csv
+
+# Logs
+logs/*.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Pytest / coverage
+.pytest_cache/
+htmlcov/
+.coverage

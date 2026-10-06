@@ -5,6 +5,9 @@
             "Sid": "S3ETLReadWrite",
             "Effect": "Allow",
             "Action": [
+                "s3:CreateBucket",
+                "s3:PutBucketVersioning",
+                "s3:PutBucketPublicAccessBlock",
                 "s3:GetObject",
                 "s3:PutObject",
                 "s3:DeleteObject",
@@ -12,8 +15,8 @@
                 "s3:GetBucketLocation"
             ],
             "Resource": [
-                "arn:aws:s3:::YOUR-BUCKET-NAME",
-                "arn:aws:s3:::YOUR-BUCKET-NAME/*"
+                "arn:aws:s3:::luxury-travel-etl-2026",
+                "arn:aws:s3:::luxury-travel-etl-2026/*"
             ]
         }
     ]

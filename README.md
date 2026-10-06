@@ -1,7 +1,8 @@
 # Travel Bookings — Data Engineer Technical Assessment
 
-> **Candidate:** [Your Name]
+> **Candidate:** Rajeevan
 > **Position:** Associate Data Engineer — Luxury Explorers
+> **Repository:** https://github.com/Rajeevan25/bookings-etl-pipeline
 > **Domain:** Travel Booking Transactions
 > **Stack:** Python 3.11 · PostgreSQL 15 · AWS S3 · pandas
 
@@ -18,7 +19,8 @@
 8. [AWS Integration](#8-aws-integration)
 9. [Analytical Queries](#9-analytical-queries)
 10. [Scalability & Architecture Thinking](#10-scalability--architecture-thinking)
-11. [Screen Recording Guide](#11-screen-recording-guide)
+11. [Testing](#11-testing)
+12. [Screen Recording Guide](#12-screen-recording-guide-1015-min)
 
 ---
 
@@ -449,5 +451,137 @@ python -m pytest tests/ -v -p no:asyncio
 | `test_pipeline_integration.py` | 13 | Row count reconciliation, duplicate routing, multi-row dirty data, total price clamping, rejection reasons |
 
 Key integration tests verify that **input rows = clean rows + rejected rows** (no silent drops), and that duplicates are routed to the rejection trail with an explicit reason.
+
+---
+
+## 12. Screen Recording Guide (10–15 min)
+
+> **Tools:** OBS Studio (free) or any screen recorder. Open a terminal, pgAdmin / psql, and your S3 console side-by-side.
+
+### Segment 1 — Repository Tour (0:00 – 1:30)
+- Show the GitHub repo at https://github.com/Rajeevan25/bookings-etl-pipeline
+- Walk through the directory tree: `etl/`, `sql/`, `aws/`, `data/`, `tests/`
+- Briefly open `requirements.txt` and `.env.example`
+- **Say:** *"This pipeline follows a clean ETL separation. All secrets are managed via environment variables — nothing is hardcoded."*
+
+### Segment 2 — Raw Dataset (1:30 – 3:00)
+- Run the dataset generator:
+  ```bash
+  python generate_dataset.py
+  ```
+- Open `data/raw/travel_bookings_raw.csv` in a spreadsheet or `head -n 20`:
+  ```bash
+  python -c "import pandas as pd; df=pd.read_csv('data/raw/travel_bookings_raw.csv'); print(df.head(20).to_string())"
+  ```
+- **Point out visible dirty data:**
+  - Mixed-case countries: `UAE`, `uae`, `United Arab Emirates`
+  - Currency symbols in price: `$150.00`
+  - Email `" at "` instead of `@`
+  - Negative nights, invalid ratings (> 5)
+  - Multiple date formats (`2024-01-15` vs `15/01/2024`)
+- **Say:** *"We have 12,300 raw records. They contain ~10 categories of data quality issues which our transform layer will address."*
+
+### Segment 3 — ETL Execution (3:00 – 6:00)
+- Run the full pipeline (local, skip S3 for now):
+  ```bash
+  python run_pipeline.py --source local --skip-s3-upload
+  ```
+- **Narrate each phase as it logs:**
+  - `[1/4] EXTRACT` — show row count extracted
+  - `[2/4] TRANSFORM` — show clean vs rejected counts
+  - `[3/4] LOAD → PostgreSQL` — show rows upserted
+  - `[4/4] PIPELINE COMPLETE` — show total time
+- Open `logs/pipeline.log` and scroll through to show the structured log output
+- Open `data/rejected/rejected_YYYYMMDD_HHMMSS.csv` and show 5-6 rows with their `rejection_reason` column
+- **Say:** *"The pipeline is idempotent — run it again and it upserts without duplicating records."*
+
+### Segment 4 — Cleaned Data in PostgreSQL (6:00 – 9:00)
+Connect via psql or pgAdmin:
+```bash
+psql -U etl_user -d travel_db
+```
+Run these queries and show results:
+```sql
+-- Record count
+SELECT COUNT(*) FROM travel_bookings;
+
+-- Status distribution
+SELECT status, COUNT(*) FROM travel_bookings GROUP BY status ORDER BY count DESC;
+
+-- Sample of clean data
+SELECT booking_id, customer_name, country, category, check_in_date, nights, total_price, status
+FROM travel_bookings LIMIT 10;
+
+-- ETL audit log
+SELECT run_at, records_extracted, records_loaded, records_rejected, duration_seconds, status
+FROM etl_run_log ORDER BY run_at DESC LIMIT 3;
+
+-- Rejection log sample
+SELECT raw_booking_id, rejection_reason FROM etl_rejected_records LIMIT 5;
+```
+- **Say:** *"Notice the ENUM types enforce data integrity at DB level. Cross-column constraints validate checkout > checkin and total_price ≈ nights × rate."*
+
+### Segment 5 — Analytical Query Outputs (9:00 – 11:30)
+Run queries from `sql/03_queries.sql`:
+```sql
+-- Q1: Top categories by revenue
+SELECT category, COUNT(*) AS bookings, SUM(total_price) AS total_revenue,
+       ROUND(AVG(rating)::NUMERIC, 2) AS avg_rating
+FROM travel_bookings WHERE status IN ('Confirmed', 'Refunded')
+GROUP BY category ORDER BY total_revenue DESC;
+
+-- Q2: Monthly revenue growth (LAG window function)
+WITH monthly AS (
+    SELECT DATE_TRUNC('month', check_in_date) AS month, SUM(total_price) AS revenue
+    FROM travel_bookings WHERE status IN ('Confirmed', 'Refunded')
+    GROUP BY 1
+)
+SELECT TO_CHAR(month,'YYYY-MM'), revenue,
+       ROUND((revenue - LAG(revenue) OVER (ORDER BY month))
+             / NULLIF(LAG(revenue) OVER (ORDER BY month),0)*100, 2) AS growth_pct
+FROM monthly ORDER BY month;
+
+-- Q3: Average rating by country (uses partial covering index)
+EXPLAIN (ANALYZE, BUFFERS, FORMAT TEXT)
+SELECT country, ROUND(AVG(rating)::NUMERIC,2) AS avg_rating, COUNT(*) AS bookings
+FROM travel_bookings WHERE rating IS NOT NULL AND status='Confirmed'
+GROUP BY country HAVING COUNT(*) >= 5 ORDER BY avg_rating DESC;
+```
+- **Point at `EXPLAIN ANALYZE` output:** highlight `Index Only Scan` and `~1ms` execution time
+- **Say:** *"Partial covering indexes allow PostgreSQL to satisfy these queries entirely from the index — zero heap fetches."*
+
+### Segment 6 — S3 Integration (11:30 – 13:30)
+- Show `.env` with `S3_BUCKET_NAME` set (blur the actual key values on screen)
+- Show the bucket in AWS Console (or run via CLI)
+- Run the pipeline WITH S3 upload:
+  ```bash
+  python run_pipeline.py --source local
+  ```
+- After completion, go to AWS S3 Console and show:
+  - `s3://<bucket>/raw/travel_bookings_raw.csv`
+  - `s3://<bucket>/clean/travel_bookings_clean.csv`
+- **Optionally** run from S3 as source:
+  ```bash
+  python run_pipeline.py --source s3 --skip-s3-upload
+  ```
+- Open `aws/iam_policy.json` and explain:
+  ```bash
+  type aws\iam_policy.json
+  ```
+  - *"GetObject + PutObject scoped to bucket/* only — no DeleteObject, no admin rights."*
+
+### Segment 7 — Architecture & Optimization Decisions (13:30 – 15:00)
+- Open `etl/load.py` and point to the COPY + staging table pattern:
+  - *"COPY into a temp table then INSERT … ON CONFLICT is 5–50× faster than row-by-row INSERT"*
+- Open `sql/02_indexes.sql` and explain 3 key indexes:
+  - Partial index (reduces bloat — only Confirmed/Refunded rows indexed)
+  - Covering index (INCLUDE columns eliminate heap fetches → Index Only Scan)
+  - GIN trigram index on hotel_name (fuzzy LIKE search)
+- Open `etl/transform.py` lines 190-232 and point to vectorized validation:
+  - *"All validation runs as vectorized boolean masks — no Python loops over rows"*
+- Final summary:
+  - *"All-string extraction → no premature type coercion"*
+  - *"Reject-and-log strategy → bad data never touches the main table"*
+  - *"Idempotent upsert → safe to re-run on cron or after failure"*
 
 ---

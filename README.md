@@ -432,20 +432,3 @@ CREATE TABLE travel_bookings_2024_q1
 The pipeline is designed for **at-least-once delivery** with idempotency — reprocessing the same data never duplicates records.
 
 ---
-
-## 11. Screen Recording Guide
-
-For your 10–15 min screen recording, demonstrate in this order:
-
-1. **[0:00–1:00]** Show project structure in terminal (`tree /F` or `ls -la`)
-2. **[1:00–2:30]** Show raw CSV — dirty data, inconsistent formats
-3. **[2:30–5:00]** Run `python generate_dataset.py` → show output file
-4. **[5:00–9:00]** Run `python run_pipeline.py` → live log output showing extract/transform/load
-5. **[9:00–11:00]** Open psql → `SELECT COUNT(*)`, run Queries 1–3, show results
-6. **[11:00–13:00]** Show rejection log CSV — explain what was rejected and why
-7. **[13:00–14:30]** Open AWS S3 console → show raw + clean files uploaded
-8. **[14:30–15:00]** Run `EXPLAIN ANALYZE` on Query 1 before and after `sql/02_indexes.sql`
-
----
-
-*Built with ❤️ for the Luxury Explorers Associate Data Engineer assessment.*

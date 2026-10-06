@@ -111,7 +111,7 @@ def run(config: dict) -> None:
     # Save rejection log
     if len(rejected_df) > 0:
         rej_path = save_rejection_log(rejected_df, os.path.join("data", "rejected"))
-        logger.info("      Rejection log → %s", rej_path)
+        logger.info("      Rejection log -> %s", rej_path)
 
     # Save cleaned CSV locally
     clean_path = save_clean_csv(clean_df, os.path.join("data", "clean"))
@@ -125,7 +125,7 @@ def run(config: dict) -> None:
         )
 
     # ── LOAD ──────────────────────────────────────────────────────────────────
-    logger.info("[3/4] LOAD → PostgreSQL")
+    logger.info("[3/4] LOAD -> PostgreSQL")
     t0 = time.perf_counter()
     try:
         rows_loaded = load_to_postgres(clean_df, config)

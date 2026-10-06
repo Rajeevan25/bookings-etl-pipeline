@@ -160,7 +160,7 @@ def upload_to_s3(local_path: str, bucket: str, s3_key: str) -> bool:
     """Upload a local file to S3. Returns True on success."""
     try:
         s3 = _get_s3_client()
-        logger.info("Uploading %s → s3://%s/%s", local_path, bucket, s3_key)
+        logger.info("Uploading %s -> s3://%s/%s", local_path, bucket, s3_key)
         s3.upload_file(local_path, bucket, s3_key)
         logger.info("Upload successful.")
         return True
@@ -177,7 +177,7 @@ def upload_dataframe_to_s3(df: pd.DataFrame, bucket: str, s3_key: str) -> bool:
         df.to_csv(buffer, index=False, date_format="%Y-%m-%d")
         body    = buffer.getvalue().encode("utf-8")
 
-        logger.info("Uploading DataFrame → s3://%s/%s", bucket, s3_key)
+        logger.info("Uploading DataFrame -> s3://%s/%s", bucket, s3_key)
         s3.put_object(
             Bucket      = bucket,
             Key         = s3_key,

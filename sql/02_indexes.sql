@@ -52,10 +52,10 @@ COMMENT ON INDEX idx_bookings_checkin_date
 --    Query: GROUP BY DATE_TRUNC('month', check_in_date), category
 -- ---------------------------------------------------------------------------
 CREATE INDEX IF NOT EXISTS idx_bookings_month_category
-    ON travel_bookings (DATE_TRUNC('month', check_in_date), category);
+    ON travel_bookings (check_in_date, category);
 
 COMMENT ON INDEX idx_bookings_month_category
-    IS 'Covering index for monthly + category aggregations';
+    IS 'Composite index accelerating monthly date grouping and category aggregations';
 
 
 -- ---------------------------------------------------------------------------

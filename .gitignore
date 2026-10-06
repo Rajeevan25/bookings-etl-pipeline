@@ -18,13 +18,13 @@ build/
 .eggs/
 
 # Data files (large, generated)
-# data/raw/*.csv
-# data/clean/*.csv
-# data/rejected/*.csv
-# data/raw/s3_cache.csv
+data/raw/*.csv
+data/clean/*.csv
+data/rejected/*.csv
+data/raw/s3_cache.csv
 
 # Logs
-# logs/*.log
+logs/*.log
 
 # IDE
 .vscode/

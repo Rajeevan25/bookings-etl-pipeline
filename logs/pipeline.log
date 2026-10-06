@@ -1,0 +1,98 @@
+2026-10-06 13:00:46,514  [INFO    ]  run_pipeline — ======================================================================
+2026-10-06 13:00:46,514  [INFO    ]  run_pipeline —   TRAVEL BOOKINGS ETL PIPELINE  —  starting
+2026-10-06 13:00:46,514  [INFO    ]  run_pipeline — ======================================================================
+2026-10-06 13:00:46,515  [INFO    ]  run_pipeline — [1/4] EXTRACT
+2026-10-06 13:00:46,517  [INFO    ]  etl.extract — Extracting from local file: data\raw\travel_bookings_raw.csv
+2026-10-06 13:00:46,599  [INFO    ]  etl.extract — Extracted 12300 records, 16 columns
+2026-10-06 13:00:46,599  [INFO    ]  run_pipeline —       Extracted 12300 rows in 0.09s
+2026-10-06 13:00:46,608  [INFO    ]  run_pipeline — [2/4] TRANSFORM
+2026-10-06 13:00:46,609  [INFO    ]  etl.transform — Starting transform on 12300 raw records
+2026-10-06 13:00:47,185  [INFO    ]  etl.transform — Running row-level validation …
+2026-10-06 13:00:47,749  [INFO    ]  etl.transform — Validation complete: 10683 valid, 1617 rejected
+2026-10-06 13:00:47,769  [INFO    ]  etl.transform — Removed 233 duplicate booking_ids
+2026-10-06 13:00:47,841  [INFO    ]  etl.transform — Transform complete. Clean records: 10450
+2026-10-06 13:00:47,842  [INFO    ]  run_pipeline —       Clean: 10450  |  Rejected: 1617  |  Elapsed: 1.23s
+2026-10-06 13:00:47,853  [INFO    ]  etl.load — Rejection log saved: data\rejected\rejected_20261006_130047.csv (1617 records)
+2026-10-06 13:00:47,853  [INFO    ]  run_pipeline —       Rejection log → data\rejected\rejected_20261006_130047.csv
+2026-10-06 13:00:48,049  [INFO    ]  etl.load — Cleaned CSV saved: data\clean\travel_bookings_clean_20261006_130047.csv
+2026-10-06 13:00:48,049  [INFO    ]  run_pipeline — [3/4] LOAD → PostgreSQL
+2026-10-06 13:00:48,051  [INFO    ]  etl.load — Connecting to PostgreSQL …
+2026-10-06 13:00:52,098  [ERROR   ]  run_pipeline — PostgreSQL load failed: connection to server at "localhost" (::1), port 5432 failed: Connection refused (0x0000274D/10061)
+	Is the server running on that host and accepting TCP/IP connections?
+connection to server at "localhost" (127.0.0.1), port 5432 failed: Connection refused (0x0000274D/10061)
+	Is the server running on that host and accepting TCP/IP connections?
+Traceback (most recent call last):
+  File "C:\Users\Niro\Desktop\data-engineer\run_pipeline.py", line 131, in run
+    rows_loaded = load_to_postgres(clean_df, config)
+  File "C:\Users\Niro\Desktop\data-engineer\etl\load.py", line 47, in load_to_postgres
+    conn = _get_pg_connection(config)
+  File "C:\Users\Niro\Desktop\data-engineer\etl\load.py", line 32, in _get_pg_connection
+    return psycopg2.connect(
+  File "C:\Users\Niro\Desktop\data-engineer\venv\lib\site-packages\psycopg2\__init__.py", line 122, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+psycopg2.OperationalError: connection to server at "localhost" (::1), port 5432 failed: Connection refused (0x0000274D/10061)
+	Is the server running on that host and accepting TCP/IP connections?
+connection to server at "localhost" (127.0.0.1), port 5432 failed: Connection refused (0x0000274D/10061)
+	Is the server running on that host and accepting TCP/IP connections?
+
+2026-10-06 13:00:52,104  [WARNING ]  run_pipeline — Data was cleaned and saved locally. Fix DB connection and retry.
+2026-10-06 13:03:21,317  [INFO    ]  run_pipeline — ======================================================================
+2026-10-06 13:03:21,325  [INFO    ]  run_pipeline —   TRAVEL BOOKINGS ETL PIPELINE  —  starting
+2026-10-06 13:03:21,325  [INFO    ]  run_pipeline — ======================================================================
+2026-10-06 13:03:21,325  [INFO    ]  run_pipeline — [1/4] EXTRACT
+2026-10-06 13:03:21,325  [INFO    ]  etl.extract — Extracting from local file: data\raw\travel_bookings_raw.csv
+2026-10-06 13:03:21,378  [INFO    ]  etl.extract — Extracted 12300 records, 16 columns
+2026-10-06 13:03:21,378  [INFO    ]  run_pipeline —       Extracted 12300 rows in 0.06s
+2026-10-06 13:03:21,381  [INFO    ]  run_pipeline — [2/4] TRANSFORM
+2026-10-06 13:03:21,381  [INFO    ]  etl.transform — Starting transform on 12300 raw records
+2026-10-06 13:03:21,927  [INFO    ]  etl.transform — Running row-level validation …
+2026-10-06 13:03:22,484  [INFO    ]  etl.transform — Validation complete: 10683 valid, 1617 rejected
+2026-10-06 13:03:22,496  [INFO    ]  etl.transform — Removed 233 duplicate booking_ids
+2026-10-06 13:03:22,578  [INFO    ]  etl.transform — Transform complete. Clean records: 10450
+2026-10-06 13:03:22,583  [INFO    ]  run_pipeline —       Clean: 10450  |  Rejected: 1617  |  Elapsed: 1.20s
+2026-10-06 13:03:22,595  [INFO    ]  etl.load — Rejection log saved: data\rejected\rejected_20261006_130322.csv (1617 records)
+2026-10-06 13:03:22,595  [INFO    ]  run_pipeline —       Rejection log -> data\rejected\rejected_20261006_130322.csv
+2026-10-06 13:03:22,695  [INFO    ]  etl.load — Cleaned CSV saved: data\clean\travel_bookings_clean_20261006_130322.csv
+2026-10-06 13:03:22,695  [INFO    ]  run_pipeline — [3/4] LOAD -> PostgreSQL
+2026-10-06 13:03:22,695  [INFO    ]  etl.load — Connecting to PostgreSQL …
+2026-10-06 13:03:23,995  [INFO    ]  etl.load — Upserted 10450 rows into travel_bookings
+2026-10-06 13:03:24,008  [INFO    ]  run_pipeline —       Loaded 10450 rows in 1.31s
+2026-10-06 13:03:24,008  [INFO    ]  run_pipeline — [4/4] PIPELINE COMPLETE
+2026-10-06 13:03:24,008  [INFO    ]  run_pipeline — ======================================================================
+2026-10-06 13:03:24,008  [INFO    ]  run_pipeline —   Total records processed : 12300
+2026-10-06 13:03:24,009  [INFO    ]  run_pipeline —   Records loaded to DB    : 10450
+2026-10-06 13:03:24,009  [INFO    ]  run_pipeline —   Records rejected        : 1617
+2026-10-06 13:03:24,009  [INFO    ]  run_pipeline —   Total time              : 2.68 seconds
+2026-10-06 13:03:24,009  [INFO    ]  run_pipeline — ======================================================================
+2026-10-06 16:00:57,082  [INFO    ]  run_pipeline — ======================================================================
+2026-10-06 16:00:57,083  [INFO    ]  run_pipeline —   TRAVEL BOOKINGS ETL PIPELINE  —  starting
+2026-10-06 16:00:57,083  [INFO    ]  run_pipeline — ======================================================================
+2026-10-06 16:00:57,083  [INFO    ]  run_pipeline — [1/4] EXTRACT
+2026-10-06 16:00:57,084  [INFO    ]  etl.extract — Extracting from local file: data\raw\travel_bookings_raw.csv
+2026-10-06 16:00:57,133  [INFO    ]  etl.extract — Extracted 12300 records, 16 columns
+2026-10-06 16:00:57,133  [INFO    ]  run_pipeline —       Extracted 12300 rows in 0.05s
+2026-10-06 16:00:57,415  [INFO    ]  etl.load — Uploading data\raw\travel_bookings_raw.csv -> s3://luxury-travel-etl-2026/raw/travel_bookings_raw.csv
+2026-10-06 16:01:11,956  [INFO    ]  etl.load — Upload successful.
+2026-10-06 16:01:11,956  [INFO    ]  run_pipeline — [2/4] TRANSFORM
+2026-10-06 16:01:11,956  [INFO    ]  etl.transform — Starting transform on 12300 raw records
+2026-10-06 16:01:12,505  [INFO    ]  etl.transform — Running row-level validation …
+2026-10-06 16:01:13,008  [INFO    ]  etl.transform — Validation complete: 10683 valid, 1617 rejected
+2026-10-06 16:01:13,008  [INFO    ]  etl.transform — Removed 233 duplicate booking_ids
+2026-10-06 16:01:13,048  [INFO    ]  etl.transform — Transform complete. Clean records: 10450
+2026-10-06 16:01:13,049  [INFO    ]  run_pipeline —       Clean: 10450  |  Rejected: 1617  |  Elapsed: 1.08s
+2026-10-06 16:01:13,062  [INFO    ]  etl.load — Rejection log saved: data\rejected\rejected_20261006_160113.csv (1617 records)
+2026-10-06 16:01:13,062  [INFO    ]  run_pipeline —       Rejection log -> data\rejected\rejected_20261006_160113.csv
+2026-10-06 16:01:13,127  [INFO    ]  etl.load — Cleaned CSV saved: data\clean\travel_bookings_clean_20261006_160113.csv
+2026-10-06 16:01:13,215  [INFO    ]  etl.load — Uploading DataFrame -> s3://luxury-travel-etl-2026/clean/travel_bookings_clean.csv
+2026-10-06 16:01:24,337  [INFO    ]  etl.load — Upload successful.
+2026-10-06 16:01:24,337  [INFO    ]  run_pipeline — [3/4] LOAD -> PostgreSQL
+2026-10-06 16:01:24,337  [INFO    ]  etl.load — Connecting to PostgreSQL …
+2026-10-06 16:01:25,628  [INFO    ]  etl.load — Upserted 10450 rows into travel_bookings
+2026-10-06 16:01:25,677  [INFO    ]  run_pipeline —       Loaded 10450 rows in 1.34s
+2026-10-06 16:01:25,677  [INFO    ]  run_pipeline — [4/4] PIPELINE COMPLETE
+2026-10-06 16:01:25,677  [INFO    ]  run_pipeline — ======================================================================
+2026-10-06 16:01:25,677  [INFO    ]  run_pipeline —   Total records processed : 12300
+2026-10-06 16:01:25,677  [INFO    ]  run_pipeline —   Records loaded to DB    : 10450
+2026-10-06 16:01:25,677  [INFO    ]  run_pipeline —   Records rejected        : 1617
+2026-10-06 16:01:25,677  [INFO    ]  run_pipeline —   Total time              : 28.61 seconds
+2026-10-06 16:01:25,677  [INFO    ]  run_pipeline — ======================================================================

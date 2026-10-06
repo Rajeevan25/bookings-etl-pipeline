@@ -24,7 +24,7 @@ build/
 # data/raw/s3_cache.csv
 
 # Logs
-logs/*.log
+# logs/*.log
 
 # IDE
 .vscode/

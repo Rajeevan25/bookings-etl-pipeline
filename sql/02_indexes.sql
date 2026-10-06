@@ -21,10 +21,12 @@
 --    Query pattern: GROUP BY category, SUM(total_price), ORDER BY revenue DESC
 -- ---------------------------------------------------------------------------
 CREATE INDEX IF NOT EXISTS idx_bookings_category_revenue
-    ON travel_bookings (category, total_price);
+    ON travel_bookings (category)
+    INCLUDE (total_price, nights, rating)
+    WHERE status IN ('Confirmed', 'Refunded');
 
 COMMENT ON INDEX idx_bookings_category_revenue
-    IS 'Supports GROUP BY category with SUM(total_price) — avoids full-table scan';
+    IS 'Covering index for top categories: eliminates heap fetches and filters out pending/cancelled';
 
 
 -- ---------------------------------------------------------------------------
@@ -51,11 +53,13 @@ COMMENT ON INDEX idx_bookings_checkin_date
 -- 5. Composite index for monthly growth analysis
 --    Query: GROUP BY DATE_TRUNC('month', check_in_date), category
 -- ---------------------------------------------------------------------------
-CREATE INDEX IF NOT EXISTS idx_bookings_month_category
-    ON travel_bookings (check_in_date, category);
+CREATE INDEX IF NOT EXISTS idx_bookings_month_revenue
+    ON travel_bookings (check_in_date)
+    INCLUDE (total_price, country)
+    WHERE status IN ('Confirmed', 'Refunded');
 
-COMMENT ON INDEX idx_bookings_month_category
-    IS 'Composite index accelerating monthly date grouping and category aggregations';
+COMMENT ON INDEX idx_bookings_month_revenue
+    IS 'Composite expression index accelerating monthly date grouping, covering revenue and countries';
 
 
 -- ---------------------------------------------------------------------------
@@ -83,12 +87,13 @@ COMMENT ON INDEX idx_bookings_confirmed
 -- ---------------------------------------------------------------------------
 -- 8. Index on rating for country-level average calculations
 -- ---------------------------------------------------------------------------
-CREATE INDEX IF NOT EXISTS idx_bookings_rating_country
-    ON travel_bookings (country, rating)
-    WHERE rating IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_bookings_country_rating
+    ON travel_bookings (country)
+    INCLUDE (rating, total_price)
+    WHERE rating IS NOT NULL AND status = 'Confirmed';
 
-COMMENT ON INDEX idx_bookings_rating_country
-    IS 'Partial covering index for AVG(rating) GROUP BY country';
+COMMENT ON INDEX idx_bookings_country_rating
+    IS 'Covering index for country rating aggregations with precise status filter';
 
 
 -- ---------------------------------------------------------------------------

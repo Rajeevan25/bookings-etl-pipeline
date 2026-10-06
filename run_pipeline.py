@@ -30,6 +30,8 @@ from etl.load      import (
     save_rejection_log,
     upload_to_s3,
     upload_dataframe_to_s3,
+    load_rejections_to_postgres,
+    log_run_to_postgres,
 )
 
 # ── Logging setup ─────────────────────────────────────────────────────────────
@@ -90,8 +92,8 @@ def run(config: dict) -> None:
         len(raw_df), time.perf_counter() - t0
     )
 
-    # Upload raw file to S3 (if enabled)
-    if not config["skip_s3_upload"] and config["s3_bucket"]:
+    # Upload raw file to S3 (only when source is local — avoids circular re-upload)
+    if not config["skip_s3_upload"] and config["s3_bucket"] and config["source"] == "local":
         upload_to_s3(
             config["local_path"],
             config["s3_bucket"],
@@ -112,6 +114,10 @@ def run(config: dict) -> None:
     if len(rejected_df) > 0:
         rej_path = save_rejection_log(rejected_df, os.path.join("data", "rejected"))
         logger.info("      Rejection log -> %s", rej_path)
+        try:
+            load_rejections_to_postgres(rejected_df, config)
+        except Exception as exc:
+            logger.error("Failed to load rejected records to DB: %s", exc)
 
     # Save cleaned CSV locally
     clean_path = save_clean_csv(clean_df, os.path.join("data", "clean"))
@@ -140,10 +146,22 @@ def run(config: dict) -> None:
 
     # ── SUMMARY ───────────────────────────────────────────────────────────────
     total_elapsed = time.perf_counter() - start
+    
+    run_stats = {
+        "source": config["source"],
+        "records_extracted": len(raw_df),
+        "records_loaded": rows_loaded if 'rows_loaded' in locals() else 0,
+        "records_rejected": len(rejected_df),
+        "duration_seconds": total_elapsed,
+        "status": "SUCCESS" if ('rows_loaded' in locals() and rows_loaded > 0) else "FAILURE",
+        "error_message": None
+    }
+    log_run_to_postgres(run_stats, config)
+
     logger.info("[4/4] PIPELINE COMPLETE")
     logger.info("=" * 70)
     logger.info("  Total records processed : %d", len(raw_df))
-    logger.info("  Records loaded to DB    : %d", rows_loaded)
+    logger.info("  Records loaded to DB    : %d", run_stats["records_loaded"])
     logger.info("  Records rejected        : %d", len(rejected_df))
     logger.info("  Total time              : %.2f seconds", total_elapsed)
     logger.info("=" * 70)

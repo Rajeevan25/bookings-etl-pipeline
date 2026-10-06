@@ -5,18 +5,21 @@
             "Sid": "S3ETLReadWrite",
             "Effect": "Allow",
             "Action": [
-                "s3:CreateBucket",
-                "s3:PutBucketVersioning",
-                "s3:PutBucketPublicAccessBlock",
                 "s3:GetObject",
-                "s3:PutObject",
-                "s3:DeleteObject",
-                "s3:ListBucket",
-                "s3:GetBucketLocation"
+                "s3:PutObject"
             ],
             "Resource": [
-                "arn:aws:s3:::luxury-travel-etl-2026",
                 "arn:aws:s3:::luxury-travel-etl-2026/*"
+            ]
+        },
+        {
+            "Sid": "S3ETLList",
+            "Effect": "Allow",
+            "Action": [
+                "s3:ListBucket"
+            ],
+            "Resource": [
+                "arn:aws:s3:::luxury-travel-etl-2026"
             ]
         }
     ]

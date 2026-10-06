@@ -186,64 +186,56 @@ def transform(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
     df["nights"] = pd.to_numeric(df["nights"], errors="coerce")
     df["rating"] = pd.to_numeric(df["rating"], errors="coerce")
 
-    # ── Step 10: Validate constraints ─────────────────────────────────────────
-    def validate_row(row) -> str | None:
-        reasons = []
+    # ── Step 10: Validate constraints (Vectorized) ────────────────────────────
+    logger.info("Running vectorized validation …")
+    
+    m_missing_booking_id = df["booking_id"].isna()
+    m_missing_customer = df["customer_name"].isna()
+    
+    ppn = pd.to_numeric(df["price_per_night"], errors="coerce")
+    m_invalid_ppn = ppn.isna() | (ppn <= 0)
+    
+    nights = pd.to_numeric(df["nights"], errors="coerce")
+    m_invalid_nights = nights.isna() | (nights <= 0)
+    
+    rating = pd.to_numeric(df["rating"], errors="coerce")
+    m_invalid_rating = rating.notna() & ((rating < 1) | (rating > 5))
+    
+    m_unparseable_ci = df["check_in_date"].isna()
+    
+    ci = pd.to_datetime(df["check_in_date"], errors="coerce")
+    co = pd.to_datetime(df["check_out_date"], errors="coerce")
+    m_invalid_dates = ci.notna() & co.notna() & (co <= ci)
+    
+    m_unknown_cat = df["category"].isna()
+    m_unknown_country = df["country"].isna()
+    m_unknown_status = df["status"].isna()
 
-        # booking_id must exist
-        if pd.isna(row.get("booking_id")):
-            reasons.append("missing booking_id")
-
-        # customer_name must exist
-        if pd.isna(row.get("customer_name")):
-            reasons.append("missing customer_name")
-
-        # price_per_night must be positive
-        ppn = row.get("price_per_night")
-        if pd.isna(ppn) or ppn <= 0:
-            reasons.append(f"invalid price_per_night ({ppn})")
-
-        # nights must be positive integer
-        nights = row.get("nights")
-        if pd.isna(nights) or nights <= 0:
-            reasons.append(f"invalid nights ({nights})")
-
-        # rating must be 1-5 (or None)
-        rating = row.get("rating")
-        if not pd.isna(rating) and (rating < 1 or rating > 5):
-            reasons.append(f"rating out of range ({rating})")
-
-        # check_in_date must parse
-        if pd.isna(row.get("check_in_date")):
-            reasons.append("unparseable check_in_date")
-
-        # check_out > check_in
-        ci = row.get("check_in_date")
-        co = row.get("check_out_date")
-        if ci and co and pd.notna(ci) and pd.notna(co) and co <= ci:
-            reasons.append("check_out_date not after check_in_date")
-
-        # category must be known
-        if pd.isna(row.get("category")):
-            reasons.append("unknown/missing category")
-
-        # country must be known
-        if pd.isna(row.get("country")):
-            reasons.append("unknown/missing country")
-
-        # status must be known
-        if pd.isna(row.get("status")):
-            reasons.append("unknown/missing status")
-
-        return "; ".join(reasons) if reasons else None
-
-    logger.info("Running row-level validation …")
-    rejection_reasons = df.apply(validate_row, axis=1)
-    mask_valid   = rejection_reasons.isna()
+    reasons = pd.Series("", index=df.index)
+    conditions = [
+        (m_missing_booking_id, "missing booking_id; "),
+        (m_missing_customer, "missing customer_name; "),
+        (m_invalid_ppn, "invalid price_per_night; "),
+        (m_invalid_nights, "invalid nights; "),
+        (m_invalid_rating, "rating out of range; "),
+        (m_unparseable_ci, "unparseable check_in_date; "),
+        (m_invalid_dates, "check_out_date not after check_in_date; "),
+        (m_unknown_cat, "unknown/missing category; "),
+        (m_unknown_country, "unknown/missing country; "),
+        (m_unknown_status, "unknown/missing status; ")
+    ]
+    
+    for mask, msg in conditions:
+        reasons = np.where(mask, reasons + msg, reasons)
+        
+    reasons = pd.Series(reasons, index=df.index).str.strip("; ")
+    reasons.replace("", None, inplace=True)
+    
+    mask_valid = reasons.isna()
     mask_invalid = ~mask_valid
 
     rejected_df = original_df[mask_invalid].copy()
-    rejected_df["rejection_reason"] = rejection_reasons[mask_invalid].values
+    rejected_df["rejection_reason"] = reasons[mask_invalid].values
     df = df[mask_valid].copy()
 
     logger.info(
@@ -252,9 +244,14 @@ def transform(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
     )
 
     # ── Step 11: Remove exact duplicates (by booking_id) ─────────────────────
-    before_dedup = len(df)
-    df.drop_duplicates(subset=["booking_id"], keep="first", inplace=True)
-    dupes_removed = before_dedup - len(df)
+    dupe_mask = df.duplicated(subset=["booking_id"], keep="first")
+    if dupe_mask.any():
+        dupes_df = original_df.loc[df[dupe_mask].index].copy()
+        dupes_df["rejection_reason"] = "duplicate booking_id"
+        rejected_df = pd.concat([rejected_df, dupes_df], ignore_index=True)
+        df = df[~dupe_mask].copy()
+
+    dupes_removed = dupe_mask.sum()
     logger.info("Removed %d duplicate booking_ids", dupes_removed)
 
     # ── Step 12: Derive / recalculate total_price where missing ───────────────
@@ -274,9 +271,9 @@ def transform(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
     df["check_out_date"] = pd.to_datetime(df["check_out_date"])
     df["created_date"]   = pd.to_datetime(df["created_date"])
     df["nights"]         = df["nights"].astype(int)
-    df["price_per_night"] = df["price_per_night"].round(2)
-    df["total_price"]    = df["total_price"].round(2)
-    df["rating"]         = df["rating"].round(1)
+    df["price_per_night"] = pd.to_numeric(df["price_per_night"], errors="coerce").round(2)
+    df["total_price"]    = pd.to_numeric(df["total_price"], errors="coerce").round(2)
+    df["rating"]         = pd.to_numeric(df["rating"], errors="coerce").round(1)
 
     # Standardize customer_name: Title Case
     df["customer_name"] = df["customer_name"].str.title()

@@ -16,6 +16,7 @@ import csv
 import logging
 from datetime import datetime
 
+import json
 import pandas as pd
 import psycopg2
 from psycopg2 import sql, extras
@@ -132,6 +133,65 @@ def save_rejection_log(rejected_df: pd.DataFrame, output_dir: str) -> str:
     rejected_df.to_csv(path, index=False)
     logger.info("Rejection log saved: %s (%d records)", path, len(rejected_df))
     return path
+
+def load_rejections_to_postgres(rejected_df: pd.DataFrame, config: dict):
+    """Insert rejected records into the etl_rejected_records table."""
+    if rejected_df.empty:
+        return
+
+    logger.info("Loading %d rejected records to postgres...", len(rejected_df))
+    conn = _get_pg_connection(config)
+    try:
+        with conn:
+            with conn.cursor() as cur:
+                insert_query = """
+                    INSERT INTO etl_rejected_records (raw_booking_id, raw_data, rejection_reason)
+                    VALUES (%s, %s, %s)
+                """
+                
+                # Convert DataFrame rows to parameters
+                args = []
+                for _, row in rejected_df.iterrows():
+                    raw_data = row.drop('rejection_reason').to_dict()
+                    # Handle NaNs in dict to prevent json serialization issues
+                    raw_data = {k: (v if pd.notna(v) else None) for k, v in raw_data.items()}
+                    args.append((
+                        row.get("booking_id"),
+                        json.dumps(raw_data),
+                        row.get("rejection_reason")
+                    ))
+                
+                extras.execute_batch(cur, insert_query, args)
+                logger.info("Inserted %d rejected records.", len(args))
+    finally:
+        conn.close()
+
+def log_run_to_postgres(run_stats: dict, config: dict):
+    """Log the ETL run to etl_run_log table."""
+    logger.info("Logging run to postgres...")
+    conn = _get_pg_connection(config)
+    try:
+        with conn:
+            with conn.cursor() as cur:
+                insert_query = """
+                    INSERT INTO etl_run_log (
+                        source, records_extracted, records_loaded, 
+                        records_rejected, duration_seconds, status, error_message
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s)
+                """
+                cur.execute(insert_query, (
+                    run_stats.get("source", "local"),
+                    run_stats.get("records_extracted", 0),
+                    run_stats.get("records_loaded", 0),
+                    run_stats.get("records_rejected", 0),
+                    run_stats.get("duration_seconds", 0.0),
+                    run_stats.get("status", "FAILURE"),
+                    run_stats.get("error_message", None)
+                ))
+    except Exception as e:
+        logger.error(f"Failed to log run to DB: {e}")
+    finally:
+        conn.close()
 
 
 def save_clean_csv(df: pd.DataFrame, output_dir: str) -> str:
